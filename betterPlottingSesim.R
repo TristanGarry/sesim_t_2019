@@ -6,19 +6,18 @@ require(ggthemes)
 require(cowplot)
 require(grid)
 require(codyn)
+require(gridExtra)
 
 ### in order to run this the sesim model has to have been run already and the output be in local memory
 ### you also need to have the microcosm data saved in a data/ folder in the working directory
 
-cell_mass <- c(2.227e-7,8.05e-8,1.52e-8,4.30e-8,1.96e-7,3.76e-6,4.77e-9,6.9e-8,9.68e-8)
-productivity <- function(mat){
-  prod <- sum(mat * cell_mass)
-  return (prod)
-}
+### LOAD IN PARAMETERS ### 
+source('./plot_parameters.R')
+
 
 df <- read.csv("data/Microcosm_RawData_CF_2017.csv")
 names(df)[1] <- "treatment"
-df <- df[-13] # import the raw data
+df <- df[-13] # import the raw data (from microcosm)
 
 # setup of metric storage for lab data 
 metrics <- data.frame(matrix(NA, nrow = 240, ncol = 7))
@@ -41,10 +40,11 @@ for(i in unique(metrics$time)){
   }
 }
 
+
 ### HELPER FUNCTIONS FOR PLOTTING ###
 add_labs = function (plot, xlab='', ylab='') {
-  ylab_obj = textGrob(ylab, gp=gpar(fontfamily='serif', fontsize=16), rot=90)
-  xlab_obj = textGrob(xlab, gp=gpar(fontfamily='serif', fontsize=16))
+  ylab_obj = textGrob(ylab, gp=gpar(fontfamily=fontfam, fontsize=16), rot=90)
+  xlab_obj = textGrob(xlab, gp=gpar(fontfamily=fontfam, fontsize=16))
   labelled_plot = grid.arrange(arrangeGrob(plot, left=ylab_obj, bottom=xlab_obj))
   return (labelled_plot)
 }
@@ -58,11 +58,12 @@ reshape_dat <- function(df, subset_name, subset_col='treatment', melt_vars=c('ti
   return (melted_subset)
 }
 
+
 ### FIGURE 2 ###
-plot_individual_box <- function(frame, yname, ylab, xname='treatment', scientific_y=FALSE, theme=theme_tufte()){
+plot_individual_box <- function(frame, yname, ylab, xname='treatment', scientific_y=FALSE, theme=global_theme){
   plot = ggplot(data=frame, aes_string(x=xname, y=yname)) + 
     geom_boxplot() + xlab('') + ylab(ylab) + 
-    theme + theme(axis.line = element_line(color = 'black'), text = element_text(size=16))
+    theme
   if (scientific_y)
     plot = plot + scale_y_continuous(labels = function(y) format(y, scientific=TRUE))
   return (plot)
@@ -74,7 +75,8 @@ rich = plot_individual_box(boxplot_data, 'rich', 'Species richness')
 eve = plot_individual_box(boxplot_data, 'eve', 'Pielou\'s evenness')
 prod = plot_individual_box(boxplot_data, 'prod', 'Productivity', scientific_y=TRUE)
 
-fig_2_no_lab = plot_grid(div, rich, eve, prod, nrow=2, align='hv', labels=c('a)', 'b)', 'c)', 'd)'))
+fig_2_no_lab = plot_grid(div, rich, eve, prod, nrow=2, align='hv', labels=grid_labels, label_fontface=def_label_fontface, 
+                         label_size=def_label_size)
 fig_2 = add_labs(fig_2_no_lab, xlab='Treatment')
 rm(fig_2_no_lab)
 ggsave('plots/fig_2.pdf', fig_2, 
@@ -85,14 +87,14 @@ assembly_data <- na.omit(df)
 species_names <- c('B', 'E', 'C', 'Pa', 'Pb', 'S', 'T', 'L', 'V')
 assembly_data[species_names] <- sqrt(assembly_data[species_names] + 1.0)
 
-assembly.trajectory <- function(data, level, col, limitx = c(-0.3,0.5), limity = c(-0.4,0.2), theme = theme_tufte()){
+assembly.trajectory <- function(data, level, col, limitx=c(-0.3,0.5), limity=c(-0.4,0.2), theme=global_theme){
   dist <- vegdist(data[-(1:3)],method="bray")
   disp <- betadisper(dist,group=data$treatment,sqrt.dist=F,type="centroid")
   temp <- cbind(data[1:3],scores(disp)$sites)
   plot <- ggplot(data=temp[temp$treatment==level,],aes(x=PCoA1,y=PCoA2,group=replicate,by=time)) +
     geom_path(colour=col,size=1) + geom_point(data=temp[temp$treatment==level & temp$time==30,],size=5) +
     geom_point(data=temp[1,], size = 5, shape = 17) + xlim(limitx) + ylim(limity) +
-    theme + theme(axis.line = element_line(color = 'black'), text = element_text(size=16)) +
+    theme +
     xlab('') + ylab('')
   return (plot)
 }    
@@ -101,7 +103,7 @@ low = assembly.trajectory(assembly_data, 'low', 'darkslategray2')
 int = assembly.trajectory(assembly_data, 'intermediate', 'darkslategray')
 high = assembly.trajectory(assembly_data, 'high', 'black')
 
-fig_4_no_lab = plot_grid(low, int, high, nrow=1, labels=c('a)', 'b)', 'c)'))
+fig_4_no_lab = plot_grid(low, int, high, nrow=1, labels=grid_labels, label_fontface=def_label_fontface, label_size=def_label_size)
 fig_4 = add_labs(fig_4_no_lab, 'PCoA1', 'PCoA2')
 rm(fig_4_no_lab)
 ggsave('plots/fig_4.pdf', fig_4,
@@ -122,12 +124,13 @@ calculate_synchrony <- function(df, treatments){
 
 treatment_levels = c('low', 'intermediate', 'high')
 community_synchrony <- calculate_synchrony(df, treatment_levels)
-# anova(lm(synchrony ~ treatment,data=community_synchrony))
+# anova(lm(synchrony ~ treatment,data=communi ty_synchrony))
 # TukeyHSD(aov(lm(synchrony ~ treatment,data=community_synchrony)))
 
-plot_synchrony <- function(synch_data, xname='treatment', yname='synchrony', xlab='Treatment', ylab='Loreau\'s community synchrony', theme=theme_tufte()){
+plot_synchrony <- function(synch_data, xname='treatment', yname='synchrony', xlab='Treatment', ylab='Loreau\'s community synchrony',
+                           theme=global_theme){
   synchrony_plot <- ggplot(synch_data, aes_string(x=xname, y=yname)) + geom_boxplot() +
-    theme + theme(axis.line = element_line(color = 'black'), text = element_text(size=16)) +
+    theme +
     xlab(xlab) + ylab(ylab)
   return (synchrony_plot)
 }
@@ -164,13 +167,17 @@ find_abundance_cv <- function(df, timestep=last_step, metric_cols_rep=grouping_m
 
 plotdata <- find_abundance_cv(rep_samples)
 
-plot_lines <- function(df, xname='patch', yname='mean', groupname='quality', ymin='ymin', ymax='ymax', theme=theme_tufte(),
+plot_lines <- function(df, xname='patch', yname='mean', groupname='quality', ymin='ymin', ymax='ymax', theme=global_theme,
                        get_legend=FALSE, legend_title='Quality') {
   if (get_legend==FALSE){
     cv_plot <- ggplot(df, aes_string(x=xname, y=yname, group=groupname, colour=groupname)) + 
-      geom_line(size=1, linetype='twodash') + geom_ribbon(aes_string(ymin=ymin, ymax=ymax, fill=groupname), alpha=0.3, size=0) + 
-      theme + theme(axis.line = element_line(color = 'black'), text = element_text(size=16), legend.position='None') +
-      xlab('') + ylab('')
+      geom_line(size=1) + geom_point(size=3) + geom_ribbon(aes_string(ymin=ymin, ymax=ymax, fill=groupname), alpha=0.3, size=0) + 
+      theme +
+      xlab('') + ylab('') + theme(legend.position = "none")
+    # cv_plot <- ggplot(df, aes_string(x=xname, y=yname, group=groupname, colour=groupname)) + 
+    #   geom_line(size=1, linetype='twodash') + geom_ribbon(aes_string(ymin=ymin, ymax=ymax, fill=groupname), alpha=0.3, size=0) + 
+    #   theme +
+    #   xlab('') + ylab('') + theme(legend.position = "none")
     return (cv_plot)  
   }
   if (get_legend==TRUE){
@@ -187,8 +194,8 @@ circular <- plot_lines(plotdata[plotdata$connectivity==3,])
 global <- plot_lines(plotdata[plotdata$connectivity==4,])
 legend <- plot_lines(plotdata[plotdata$connectivity==1,], get_legend=TRUE)
 
-fig_9_no_lab = plot_grid(absent, linear, legend, circular, global, nrow=2, labels=c('a)', 'b)', '', 'c)', 'd)'),
-                         rel_widths=c(1,1,0.15,1,1))
+fig_9_no_lab = plot_grid(absent, linear, legend, circular, global, nrow=2, labels=grid_labels_9,
+                         rel_widths=c(1,1,0.15,1,1), label_fontface=def_label_fontface, label_size=def_label_size)
 fig_9 = add_labs(fig_9_no_lab, xlab='Patch', ylab='Coefficient of variation of abundance')
 rm(fig_9_no_lab)
 ggsave('plots/fig_9.pdf', fig_9, 
