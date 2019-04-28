@@ -175,28 +175,28 @@ str(rep_samples)
 write.csv(rep_samples, file="cp-timeseries.csv")
 rm(list=names_samples)
 
-# # assemble results
-# results.data <- data.frame(connectivity=results$connectivity,
-#                            patchquality=results$patchquality,
-#                            scale=rep(c("local","regional"), each=(dim(results)[1])),
-#                            metric=rep(c("1diversity", "2richness", "3evenness", "4productivity"), each=(dim(results)[1])*2),
-#                            value=c(results$div_l, results$div_r, results$rich_l, results$rich_r,
-#                                    results$eve_l, results$eve_r, results$prod_l, results$prod_r))
-# 
-# # results plot
-# ggplot(results.data[results.data$scale == "local",], aes(x=(patchquality), y=value)) +
-#   labs(x="Patch quality", y="Metrics") +
-#   geom_ribbon(stat="summary", fun.ymin=function(x) {mean(x)-(sd(x)/sqrt(length(x)))},
-#               fun.ymax=function(x) {mean(x)+(sd(x)/sqrt(length(x)))}, alpha=0.3, aes(fill=connectivity)) +
-#   stat_summary(fun.y=mean, na.rm=T, geom="line", size=0.5, show.legend=T, aes(colour=connectivity)) +
-#   stat_summary(fun.y=mean, na.rm=T, geom="point", size=3, show.legend=T, aes(colour=connectivity)) +
-#   #scale_fill_manual(values=colors) +
-#   #scale_colour_manual(values=colors) +
-#   facet_wrap(~metric, nrow=2, scales="free", labeller=as_labeller(c("1diversity"="a)","2richness"="b)","3evenness"="c)","4productivity"="d)"))) +
-#   theme_gray() + theme(panel.background=element_rect(fill="white"), panel.border=element_rect(linetype="solid", fill=NA),
-#         axis.ticks=element_line(size=0.3), axis.ticks.length=unit(0.2, "cm"),
-#         axis.title.y=element_text(size=rel(1.2)), axis.title.x=element_text(size=rel(1.2)),
-#         axis.text.y=element_text(size=rel(1.1)), axis.text.x=element_text(size=rel(1.1)),
-#         strip.text=element_text(size=rel(1)), strip.background=element_rect(fill="white"),
-#         strip.text.x=element_text(angle = 0, hjust = 0))
+# assemble results
+results.data <- data.frame(connectivity=results$connectivity,
+                           patchquality=results$patchquality,
+                           scale=rep(c("local","regional"), each=(dim(results)[1])),
+                           metric=rep(c("1diversity", "2richness", "3evenness", "4productivity"), each=(dim(results)[1])*2),
+                           value=c(results$div_l, results$div_r, results$rich_l, results$rich_r,
+                                   results$eve_l, results$eve_r, results$prod_l, results$prod_r))
+
+# results plot
+ggplot(results.data[results.data$scale == "local",], aes(x=(patchquality), y=value)) +
+  labs(x="Patch quality", y="Metrics") +
+  geom_ribbon(stat="summary", fun.ymin=function(x) {mean(x)-(sd(x)/sqrt(length(x)))},
+              fun.ymax=function(x) {mean(x)+(sd(x)/sqrt(length(x)))}, alpha=0.3, aes(fill=connectivity)) +
+  stat_summary(fun.y=mean, na.rm=T, geom="line", size=0.5, show.legend=T, aes(colour=connectivity)) +
+  stat_summary(fun.y=mean, na.rm=T, geom="point", size=3, show.legend=T, aes(colour=connectivity)) +
+  #scale_fill_manual(values=colors) +
+  #scale_colour_manual(values=colors) +
+  facet_wrap(~metric, nrow=2, scales="free", labeller=as_labeller(c("1diversity"="a)","2richness"="b)","3evenness"="c)","4productivity"="d)"))) +
+  theme_gray() + theme(panel.background=element_rect(fill="white"), panel.border=element_rect(linetype="solid", fill=NA),
+        axis.ticks=element_line(size=0.3), axis.ticks.length=unit(0.2, "cm"),
+        axis.title.y=element_text(size=rel(1.2)), axis.title.x=element_text(size=rel(1.2)),
+        axis.text.y=element_text(size=rel(1.1)), axis.text.x=element_text(size=rel(1.1)),
+        strip.text=element_text(size=rel(1)), strip.background=element_rect(fill="white"),
+        strip.text.x=element_text(angle = 0, hjust = 0))
 
